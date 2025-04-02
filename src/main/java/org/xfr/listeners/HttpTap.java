@@ -52,7 +52,7 @@ public class HttpTap implements HttpHandler {
                 for (JsonNode action : baseObject.get("actions")) {
                     String methodName = parseSFAction(action);
                     if(!sfScan.ui.methodsTab.endPoints.containsKey(methodName) && methodName != null) {
-                        sfScan.ui.methodsTab.endPoints.put(methodName, new TreeSet<String>());
+                        sfScan.ui.methodsTab.endPoints.put(methodName, new TreeSet<>());
                         sfScan.ui.methodsTab.updateMethods();
                         sfScan.ui.methodsTab.exampleRequestForEndpoints.put(methodName, requestToBeSent.toString());
                     }

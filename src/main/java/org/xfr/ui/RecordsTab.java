@@ -9,17 +9,15 @@ import java.awt.event.ActionListener;
 
 public class RecordsTab extends JPanel implements ActionListener {
     private final SFScan sfScan;
-    private JButton updateButton;
-    private JScrollPane scrollPane;
     public JTextArea textArea;
 
     public RecordsTab(SFScan sfScan) {
         this.sfScan = sfScan;
         this.setLayout(new BorderLayout());
         // Build panel
-        updateButton = new JButton("Update");
+        JButton updateButton = new JButton("Update");
         textArea = new JTextArea();
-        scrollPane = new JScrollPane(textArea);
+        JScrollPane scrollPane = new JScrollPane(textArea);
 
         textArea.setEditable(false);
         textArea.setWrapStyleWord(true);
