@@ -14,6 +14,7 @@ public class SFIdTab extends JPanel implements ActionListener {
     public SFIdTab(SFScan sfScan) {
         this.sfScan = sfScan;
         this.setLayout(new BorderLayout());
+
         // Build panel
         JButton updateButton = new JButton("Update");
         textArea = new JTextArea();
@@ -33,8 +34,15 @@ public class SFIdTab extends JPanel implements ActionListener {
         this.add(updateButton, BorderLayout.SOUTH);
     }
 
+    private void checkSFID()
+    {
+        String s = "^[a-zA-Z0-9]{15}$";
+
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         sfScan.log.logToOutput("Button Pressed");
     }
+
 }

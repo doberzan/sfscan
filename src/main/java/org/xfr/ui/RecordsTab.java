@@ -1,5 +1,6 @@
 package org.xfr.ui;
 
+import burp.api.montoya.http.handler.*;
 import org.xfr.SFScan;
 
 import javax.swing.*;
@@ -7,13 +8,17 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-public class RecordsTab extends JPanel implements ActionListener {
+import static burp.api.montoya.http.handler.RequestToBeSentAction.continueWith;
+import static burp.api.montoya.http.handler.ResponseReceivedAction.continueWith;
+
+public class RecordsTab extends JPanel implements ActionListener, HttpHandler {
     private final SFScan sfScan;
     public JTextArea textArea;
 
     public RecordsTab(SFScan sfScan) {
         this.sfScan = sfScan;
         this.setLayout(new BorderLayout());
+
         // Build panel
         JButton updateButton = new JButton("Update");
         textArea = new JTextArea();
@@ -36,5 +41,15 @@ public class RecordsTab extends JPanel implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         sfScan.log.logToOutput("Button Pressed");
+    }
+
+    @Override
+    public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
+        return continueWith(requestToBeSent);
+    }
+
+    @Override
+    public ResponseReceivedAction handleHttpResponseReceived(HttpResponseReceived responseReceived) {
+        return continueWith(responseReceived);
     }
 }

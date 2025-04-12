@@ -1,6 +1,8 @@
 package org.xfr.ui;
 
+import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.HttpRequestResponse;
+import burp.api.montoya.http.message.params.HttpParameterType;
 import burp.api.montoya.http.message.requests.HttpRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,14 +18,21 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 
-public class ObjectsTab extends JPanel implements ActionListener {
+import static burp.api.montoya.http.handler.RequestToBeSentAction.continueWith;
+import static burp.api.montoya.http.handler.ResponseReceivedAction.continueWith;
+
+public class ObjectsTab extends JPanel implements ActionListener, HttpHandler {
     private final SFScan sfScan;
+
+    private String target;
+    private String currentContext;
 
     private JButton queryButton;
     private JButton saveButton;
@@ -38,6 +47,8 @@ public class ObjectsTab extends JPanel implements ActionListener {
     public ObjectsTab(SFScan sfScan) {
         this.sfScan = sfScan;
         this.sfObjects = new HashMap<>();
+        this.target = "";
+        this.currentContext = "";
         buildPanelUI();
     }
 
@@ -71,7 +82,7 @@ public class ObjectsTab extends JPanel implements ActionListener {
 
     public void sendObjectsQuery() {
         String payload = "{\"actions\":[{\"id\":\"1337;a\",\"descriptor\":\"serviceComponent://ui.force.components.controllers.hostConfig.HostConfigController/ACTION$getConfigData\",\"callingDescriptor\":\"UNKNOWN\",\"params\":{},\"storable\":true}]}";
-        String fullQuery = "message=" + URLEncoder.encode(payload, StandardCharsets.UTF_8) + "&aura.context=" + sfScan.httpTap.currentContext + "&aura.token=null";
+        String fullQuery = "message=" + URLEncoder.encode(payload, StandardCharsets.UTF_8) + "&aura.context=" + currentContext + "&aura.token=null";
 
         if (targetURL.getText() != null && !targetURL.getText().isEmpty()) {
 
@@ -153,5 +164,25 @@ public class ObjectsTab extends JPanel implements ActionListener {
                 throw new RuntimeException(ex);
             }
         }
+    }
+
+    @Override
+    public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
+        if(currentContext == null || currentContext.isEmpty() || currentContext.equals("null"))
+        {
+            currentContext = requestToBeSent.parameterValue("aura.context", HttpParameterType.BODY);
+        }
+        if(target == null||target.isEmpty())
+        {
+            target = URI.create(requestToBeSent.url()).getHost();
+            targetURL.setText(target);
+            sendObjectsQuery();
+        }
+        return continueWith(requestToBeSent);
+    }
+
+    @Override
+    public ResponseReceivedAction handleHttpResponseReceived(HttpResponseReceived responseReceived) {
+        return continueWith(responseReceived);
     }
 }
