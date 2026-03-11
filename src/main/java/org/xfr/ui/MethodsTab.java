@@ -305,7 +305,7 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
         // Collect message body for SF POST messages
-        if(requestToBeSent.method().equalsIgnoreCase("POST") && requestToBeSent.hasParameter("message", HttpParameterType.BODY))
+        if(requestToBeSent.method().equalsIgnoreCase("POST") && requestToBeSent.hasParameter("message", HttpParameterType.BODY) && requestToBeSent.hasParameter("aura.context", HttpParameterType.BODY))
         {
             String message = URLDecoder.decode(requestToBeSent.parameterValue("message", HttpParameterType.BODY), StandardCharsets.UTF_8);
             try {

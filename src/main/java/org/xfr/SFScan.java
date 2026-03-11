@@ -10,6 +10,7 @@ public class SFScan implements BurpExtension
     public Logging log;
     public UserInterface ui;
     public MontoyaApi api;
+
     @Override
     public void initialize(MontoyaApi montoyaApi) {
         // Enumerate SF custom objects
@@ -23,6 +24,8 @@ public class SFScan implements BurpExtension
         montoyaApi.extension().setName("SFScan");
         montoyaApi.http().registerHttpHandler(this.ui.methodsTab);
         montoyaApi.http().registerHttpHandler(this.ui.objectsTab);
+        montoyaApi.http().registerHttpHandler(this.ui.sfIdTab);
+        montoyaApi.http().registerHttpHandler(this.ui.targetTab);
         montoyaApi.userInterface().registerSuiteTab("SFScan", ui);
     }
 }
