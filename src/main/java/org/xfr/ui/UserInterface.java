@@ -17,7 +17,7 @@ public class UserInterface extends JTabbedPane {
         this.sfIdTab = new SFIdTab(sfScan);
         this.targetTab = new TargetTab(sfScan);
 
-        this.add("Target",targetTab);
+        this.add("Targets",targetTab);
         this.add("Methods",methodsTab);
         this.add("Objects",objectsTab);
         this.add("Ids",sfIdTab);

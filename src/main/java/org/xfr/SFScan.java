@@ -27,5 +27,12 @@ public class SFScan implements BurpExtension
         montoyaApi.http().registerHttpHandler(this.ui.sfIdTab);
         montoyaApi.http().registerHttpHandler(this.ui.targetTab);
         montoyaApi.userInterface().registerSuiteTab("SFScan", ui);
+
+        api.extension().registerUnloadingHandler(() -> {
+            // For every tab call save function
+            ui.targetTab.savePersistentData();
+            ui.sfIdTab.savePersistentData();
+        });
     }
+
 }

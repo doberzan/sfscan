@@ -5,6 +5,9 @@ import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.params.HttpParameterType;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.xfr.SFScan;
 
 import javax.swing.*;
@@ -14,8 +17,10 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -29,53 +34,56 @@ import java.util.regex.Pattern;
 
 import static burp.api.montoya.http.handler.RequestToBeSentAction.continueWith;
 
-public class SFIdTab extends JPanel implements ActionListener, HttpHandler {
+public class SFIdTab extends JPanel implements ActionListener, HttpHandler, MouseListener {
     private final SFScan sfScan;
-    private String currentContext;
     private JButton saveButton;
-    private JTable idTable;
-    private DefaultTableModel tableModel;
-    private DefaultTreeModel treeModel;
-    private DefaultMutableTreeNode treeRoot;
-    private JTree tree;
-    private HashMap<String, String[]> treeData;
-    private TreeSet<String> sfIds;
+    private JTextArea textArea;
+    private JPopupMenu popupMenu;
+    private JMenuItem copyTextItem;
+    private JLabel idLabel;
+
+    // TreeSet enforces uniqueness and order
+    private final TreeSet<String> sfIds;
 
     public SFIdTab(SFScan sfScan) {
         this.sfScan = sfScan;
-        this.treeData = new HashMap<>();
         this.sfIds = new TreeSet<>();
-        this.currentContext = "";
+
+        loadPersistentData();
         buildPanelUI();
     }
 
     private void buildPanelUI() {
         this.setLayout(new BorderLayout());
 
-        // Creating the root tree node
-        treeRoot = new DefaultMutableTreeNode("SF IDs (0)");
-
-        // Creating the JTree
-        tree = new JTree(treeRoot);
-        tree.setFont(new Font("Courier New", Font.PLAIN, 18));
-        treeModel = (DefaultTreeModel) tree.getModel();
 
         saveButton = new JButton("Save Ids");
         JPanel buttonCollection = new JPanel();
         buttonCollection.setLayout(new GridLayout(1, 3));
         saveButton.setPreferredSize(new Dimension(100, 50));
 
-        // Build panel
-        idTable = new JTable();
-        JScrollPane scrollPane = new JScrollPane(idTable);
+        Font font = new Font("SansSerif", Font.BOLD, 16);
+
+        // Build labels
+        idLabel = new JLabel(" SFIDs (0)");
+        idLabel.setFont(font);
+
+        // Build textarea
+        textArea = new JTextArea();
+        textArea.setEditable(false);
+        textArea.setLineWrap(true);
+        textArea.setWrapStyleWord(true);
+        addRightClickMenu(textArea);
 
         // Add listeners
         saveButton.addActionListener(this);
 
         // Add items to panel
         buttonCollection.add(saveButton);
-        this.add(new JScrollPane(tree));
+        this.add(new JScrollPane(textArea));
+        this.add(idLabel, BorderLayout.NORTH);
         this.add(buttonCollection, BorderLayout.SOUTH);
+        updateIdTextArea();
     }
 
     private void saveData() {
@@ -94,57 +102,108 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler {
         }
     }
 
+    // Used to do bulk decoding of HTML
     public static String safeDecode(String s) {
         try {
             return URLDecoder.decode(s, StandardCharsets.UTF_8);
         } catch (IllegalArgumentException e) {
             return URLDecoder.decode(
-                    s.replaceAll("%(?![0-9a-fA-F]{2})", "%25"),
-                    StandardCharsets.UTF_8
-            );
+                    s.replaceAll("%(?![0-9a-fA-F]{2})", "%25"), StandardCharsets.UTF_8);
         }
     }
 
     private void addSFID(String id) {
         String prefix = id.substring(0, 3);
 
+        // If id has checksum remove it
+        if(id.length() == 18)
+        {
+            id = id.substring(0,15);
+        }
+
         // Check if ID is duplicate
         if(sfIds.contains(id))
         {
             return;
         }
-
         sfIds.add(id);
 
-        // Check if ID prefix does not exist
-        if(!treeData.containsKey(prefix))
-        {
-            ((DefaultMutableTreeNode)treeModel.getRoot()).add(new DefaultMutableTreeNode(prefix));
-            treeData.put(prefix,new String[0]);
-        }
-
-        // Update tree
-        Enumeration<TreeNode> children = ((DefaultMutableTreeNode)treeModel.getRoot()).children();
-        while (children.hasMoreElements()) {
-            DefaultMutableTreeNode parent = ((DefaultMutableTreeNode)children.nextElement());
-            // Check if parent prefix matches id prefix
-            if(parent.getUserObject().toString().equals(prefix))
-            {
-                parent.add(new DefaultMutableTreeNode(id));
-            }
-        }
+        updateIdTextArea();
     }
 
-    private String[] checkSFID(String content)
+    private void checkSFID(String content)
     {
-        ArrayList<String> ids = new ArrayList<String>();
         // SF id pattern (yikes I know there is probably a better way)
         Pattern pattern = Pattern.compile("\\b[a-zA-Z0-9]{5}0[a-zA-Z0-9]{9}(?:[a-zA-Z0-9]{3})?\\b");
         Matcher matcher = pattern.matcher(content);
         while (matcher.find()) {
             addSFID(matcher.group().strip());
         }
-        return ids.toArray(new String[0]);
+    }
+
+    private void addRightClickMenu(JComponent comp) {
+        popupMenu = new JPopupMenu();
+        copyTextItem = new JMenuItem("Copy");
+        copyTextItem.addActionListener(this);
+        popupMenu.add(copyTextItem);
+        comp.addMouseListener(this);
+    }
+
+    private void updateIdTextArea()
+    {
+        synchronized (sfIds) {
+            textArea.setText("");
+            idLabel.setText(" SFIDs ("+sfIds.size()+")");
+            for (String s : sfIds)
+            {
+                textArea.append(s+'\n');
+            }
+        }
+    }
+
+    public void loadPersistentData()
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonData = sfScan.api.persistence().extensionData().getString("sfscan_ids");
+
+        if (jsonData == null || jsonData.isBlank()) {
+            return;
+        }
+
+        try {
+            JsonNode targetsRoot = mapper.readTree(jsonData);
+            for(String s: mapper.convertValue(targetsRoot.get("ids"), String[].class))
+            {
+               sfIds.add(s);
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void savePersistentData()
+    {
+        String jsonData = "";
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode targetsRoot = mapper.createObjectNode();
+        ArrayNode targetsArrayNode = mapper.createArrayNode();
+
+        // Save targets
+        for(String target: sfIds.toArray(new String[0]))
+        {
+            targetsArrayNode.add(target);
+        }
+
+        targetsRoot.set("ids", targetsArrayNode);
+
+        try {
+            jsonData = mapper.writeValueAsString(targetsRoot);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        sfScan.api.persistence().extensionData().setString("sfscan_ids", jsonData);
     }
 
     @Override
@@ -154,7 +213,9 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler {
         if(requestToBeSent.isInScope() && requestToBeSent.toolSource().toolType() == ToolType.PROXY && requestToBeSent.method().equalsIgnoreCase("POST") && requestToBeSent.hasParameter("message", HttpParameterType.BODY) && requestToBeSent.hasParameter("aura.context", HttpParameterType.BODY))
         {
             String decoded = safeDecode(requestToBeSent.bodyToString());
-            checkSFID(decoded);
+            synchronized (sfIds) {
+                checkSFID(decoded);
+            }
         }
         return RequestToBeSentAction.continueWith(requestToBeSent);
     }
@@ -165,7 +226,9 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler {
         if(responseReceived.toolSource().toolType() == ToolType.PROXY && sfScan.api.scope().isInScope(responseReceived.initiatingRequest().url()) && responseReceived.body().length() < 1000000)
         {
             String decoded = safeDecode(responseReceived.bodyToString());
-            checkSFID(decoded);
+            synchronized (sfIds) {
+                checkSFID(decoded);
+            }
         }
         return ResponseReceivedAction.continueWith(responseReceived);
     }
@@ -175,5 +238,38 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler {
         if (e.getSource() == saveButton) {
             saveData();
         }
+        if (e.getSource() == copyTextItem)
+        {
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(textArea.getSelectedText()), null);
+        }
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (e.isPopupTrigger()) {
+            popupMenu.show(e.getComponent(), e.getX(), e.getY());
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        if (e.isPopupTrigger()) {
+            popupMenu.show(e.getComponent(), e.getX(), e.getY());
+        }
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+
     }
 }

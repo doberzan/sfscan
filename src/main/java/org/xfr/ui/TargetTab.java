@@ -1,7 +1,11 @@
 package org.xfr.ui;
 
 import burp.api.montoya.http.handler.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.xfr.SFScan;
 
 import javax.swing.*;
@@ -11,6 +15,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -31,6 +36,8 @@ public class TargetTab extends JPanel implements ActionListener, HttpHandler, Mo
 
     public TargetTab(SFScan sfScan) {
         this.sfScan = sfScan;
+
+        loadPersistentData();
         buildPanelUI();
     }
 
@@ -74,14 +81,13 @@ public class TargetTab extends JPanel implements ActionListener, HttpHandler, Mo
 
         // Add items to main panel and set cosmetic preferences
         requestCollection.setBorder(null);
-        targetTextArea.setBorder(null);
         clearButton.setPreferredSize(new Dimension(100, 50));
 
-        requestAreaScrollPane.setBorder(null);
         this.setLayout(new BorderLayout());
         this.add(requestCollection, BorderLayout.CENTER);
         this.add(buttonCollection, BorderLayout.SOUTH);
 
+        updateTargetTextArea();
     }
 
     private void addRightClickMenu(JComponent comp) {
@@ -107,9 +113,55 @@ public class TargetTab extends JPanel implements ActionListener, HttpHandler, Mo
 
     private void clearTargets() {
         targetSet.clear();
+        updateTargetTextArea();
     }
 
     private void saveData() {
+    }
+
+    public void loadPersistentData()
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonData = sfScan.api.persistence().extensionData().getString("sfscan_objects");
+
+        if (jsonData == null || jsonData.isBlank()) {
+            return;
+        }
+
+        try {
+            JsonNode targetsRoot = mapper.readTree(jsonData);
+            for(String s: mapper.convertValue(targetsRoot.get("targets"), String[].class))
+            {
+                targetSet.add(s);
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void savePersistentData()
+    {
+        String jsonData = "";
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode targetsRoot = mapper.createObjectNode();
+        ArrayNode targetsArrayNode = mapper.createArrayNode();
+
+        // Save targets
+        for(String target: targetSet.toArray(new String[0]))
+        {
+            targetsArrayNode.add(target);
+        }
+
+        targetsRoot.set("targets", targetsArrayNode);
+
+        try {
+            jsonData = mapper.writeValueAsString(targetsRoot);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        sfScan.api.persistence().extensionData().setString("sfscan_objects", jsonData);
     }
 
     @Override
