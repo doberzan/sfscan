@@ -186,19 +186,19 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler, Mous
     {
         String jsonData = "";
         ObjectMapper mapper = new ObjectMapper();
-        ObjectNode targetsRoot = mapper.createObjectNode();
-        ArrayNode targetsArrayNode = mapper.createArrayNode();
+        ObjectNode idRoot = mapper.createObjectNode();
+        ArrayNode idArrayNode = mapper.createArrayNode();
 
         // Save targets
         for(String target: sfIds.toArray(new String[0]))
         {
-            targetsArrayNode.add(target);
+            idArrayNode.add(target);
         }
 
-        targetsRoot.set("ids", targetsArrayNode);
+        idRoot.set("ids", idArrayNode);
 
         try {
-            jsonData = mapper.writeValueAsString(targetsRoot);
+            jsonData = mapper.writeValueAsString(idRoot);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }

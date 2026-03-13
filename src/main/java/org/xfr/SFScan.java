@@ -32,6 +32,7 @@ public class SFScan implements BurpExtension
             // For every tab call save function
             ui.targetTab.savePersistentData();
             ui.sfIdTab.savePersistentData();
+            ui.methodsTab.savePersistentData();
         });
     }
 

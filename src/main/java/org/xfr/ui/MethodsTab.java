@@ -6,6 +6,9 @@ import burp.api.montoya.http.message.requests.HttpRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.sun.source.tree.Tree;
 import org.xfr.SFScan;
 
 import javax.swing.*;
@@ -23,10 +26,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.TreeSet;
+import java.util.*;
 
 import static burp.api.montoya.http.handler.RequestToBeSentAction.continueWith;
 import static burp.api.montoya.http.handler.ResponseReceivedAction.continueWith;
@@ -153,6 +153,10 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
         leftPanel.setDividerLocation(450);
         rightPanel.setDividerLocation(1000);
 
+        loadPersistentData();
+        updateMethods();
+        updateParameters();
+        updateRequestTextArea();
     }
 
     private void addRightClickMenu(JComponent comp) {
@@ -186,6 +190,7 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
         // Add sorted elements to methods pane
         for (String s : tmp)
         {
+            sfScan.log.logToOutput(s);
             methodsModel.addElement(s +"\n");
         }
         endpointsLabel.setText(" API Endpoints ("+tmp.length+")");
@@ -257,11 +262,73 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
             {
                 failSafe -= 1;
                 String tmp = it.next();
-                if(tmp != null) {
-                    params.add(tmp);
+                try {
+                    if (tmp != null) {
+                        params.add(tmp);
+                    }
+                }catch (Exception e)
+                {
+                    sfScan.log.logToError("updateSFParameters broke again :(");
                 }
             }
         }
+    }
+
+    public void loadPersistentData()
+    {
+        ObjectMapper mapper = new ObjectMapper();
+        String jsonData = sfScan.api.persistence().extensionData().getString("sfscan_methods");
+        if (jsonData == null || jsonData.isBlank()) {
+            return;
+        }
+
+        try {
+            JsonNode targetsRoot = mapper.readTree(jsonData);
+            Iterator<Map.Entry<String, JsonNode>> methods = targetsRoot.fields();
+            while (methods.hasNext()) {
+                Map.Entry<String, JsonNode> method = methods.next();
+                String[] parameters = mapper.convertValue(method.getValue().get("parameters"), String[].class);
+                String request = mapper.convertValue(method.getValue().get("request"), String.class);
+                sfScan.log.logToOutput(method.getKey());
+                endPoints.put(method.getKey(), new TreeSet<>(Arrays.stream(parameters).toList()));
+                HttpRequest burpRequest = HttpRequest.httpRequest(request);
+                exampleRequestForEndpoints.put(method.getKey(), burpRequest);
+            }
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+    }
+
+    public void savePersistentData()
+    {
+        String jsonData;
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode methodsRoot = mapper.createObjectNode();
+
+
+        for (String method : endPoints.keySet())
+        {
+            ObjectNode methodNode = mapper.createObjectNode();
+
+            ArrayNode parameterArrayNode = mapper.createArrayNode();
+            for(String parameter : endPoints.get(method))
+            {
+                parameterArrayNode.add(parameter);
+            }
+
+            methodNode.set("parameters", parameterArrayNode);
+            methodNode.put("request", exampleRequestForEndpoints.get(method).toString());
+            methodsRoot.set(method, methodNode);
+        }
+
+        try {
+            jsonData = mapper.writeValueAsString(methodsRoot);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
+        sfScan.api.persistence().extensionData().setString("sfscan_methods", jsonData);
     }
 
     // Button pressed
@@ -269,7 +336,10 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
     public void actionPerformed(ActionEvent e) {
 
         if (e.getSource() == updateButton) {
+            loadPersistentData();
             updateMethods();
+            updateRequestTextArea();
+            updateParameters();
         }
         if (e.getSource() == outputButton) {
             saveData();
