@@ -14,5 +14,5 @@ This tab can be used to enumerate objects from the server using the `getConfigDa
 ### ID Tab
 This tab collects Salesforce object IDs it catches going through the Proxy. The regex I used for this is very not great and that is ok.
 
-## Targets Tab
+### Targets Tab
 This tab I added so I could easily copy paste the active scope links - It has nothing to do with Salesforce :)
