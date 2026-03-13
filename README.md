@@ -1,9 +1,9 @@
 # sfscan
 
-This is a Burpsuite extension tool that can be used for Salesforce application testing. This tool is __not__ very stable and I did not refactor my code very much. Some functions may be inefficient, but the important part is that it works. - Sometimes - 
+This is a Burpsuite extension tool that can be used for Salesforce application testing. This tool is __not__ very stable and I did not refactor my code very much. Some functions may be inefficient, but the important part is that it works - *Sometimes*.
 
 ## Functionality
-For anything to work you **must** add the salesforce server as a target in your scope. If you do not do this nothing will populate.
+> For anything to work you **must** add the salesforce server as a target in your scope. If you do not do this nothing will populate.
 
 ### Methods Tab
 This tab collects Apex functions that are called when preforming actions on the webpage. The class and function name are saved along with the parameters used in the request. The side panel provides a request overview that can be sent to Repeater.
