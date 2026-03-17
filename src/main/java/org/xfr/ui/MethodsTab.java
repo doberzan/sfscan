@@ -1,5 +1,6 @@
 package org.xfr.ui;
 
+import burp.api.montoya.core.ToolType;
 import burp.api.montoya.http.handler.*;
 import burp.api.montoya.http.message.params.HttpParameterType;
 import burp.api.montoya.http.message.requests.HttpRequest;
@@ -375,7 +376,7 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
         // Collect message body for SF POST messages
-        if(requestToBeSent.method().equalsIgnoreCase("POST") && requestToBeSent.hasParameter("message", HttpParameterType.BODY) && requestToBeSent.hasParameter("aura.context", HttpParameterType.BODY))
+        if(requestToBeSent.toolSource().isFromTool(ToolType.PROXY) && requestToBeSent.isInScope() && requestToBeSent.method().equalsIgnoreCase("POST") && requestToBeSent.hasParameter("message", HttpParameterType.BODY) && requestToBeSent.hasParameter("aura.context", HttpParameterType.BODY))
         {
             String message = URLDecoder.decode(requestToBeSent.parameterValue("message", HttpParameterType.BODY), StandardCharsets.UTF_8);
             try {

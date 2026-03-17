@@ -136,7 +136,13 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler, Mous
         // SF id pattern (yikes I know there is probably a better way)
         Pattern pattern = Pattern.compile("\\b[a-zA-Z0-9]{5}0[a-zA-Z0-9]{9}(?:[a-zA-Z0-9]{3})?\\b");
         Matcher matcher = pattern.matcher(content);
+        int ctr = 0;
         while (matcher.find()) {
+            if (ctr > 1000)
+            {
+                break;
+            }
+            ctr++;
             addSFID(matcher.group().strip());
         }
     }

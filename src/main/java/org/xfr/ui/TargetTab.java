@@ -1,5 +1,6 @@
 package org.xfr.ui;
 
+import burp.api.montoya.core.ToolType;
 import burp.api.montoya.http.handler.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -166,7 +167,7 @@ public class TargetTab extends JPanel implements ActionListener, HttpHandler, Mo
 
     @Override
     public RequestToBeSentAction handleHttpRequestToBeSent(HttpRequestToBeSent requestToBeSent) {
-        if (requestToBeSent.isInScope())
+        if (requestToBeSent.isInScope() && requestToBeSent.toolSource().isFromTool(ToolType.PROXY))
         {
             synchronized (targetSet) {
                 targetSet.add(requestToBeSent.url().split("\\?")[0] + "\n");
