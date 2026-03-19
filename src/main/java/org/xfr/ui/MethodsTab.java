@@ -306,7 +306,7 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
         String jsonData;
         ObjectMapper mapper = new ObjectMapper();
         ObjectNode methodsRoot = mapper.createObjectNode();
-
+        sfScan.log.logToOutput("[SFSCAN] Saving method tab data.");
 
         for (String method : endPoints.keySet())
         {
@@ -326,6 +326,7 @@ public class MethodsTab extends JPanel implements ActionListener, ListSelectionL
         try {
             jsonData = mapper.writeValueAsString(methodsRoot);
         } catch (JsonProcessingException e) {
+            sfScan.log.logToError("[SFSCAN ERROR] Error saving methods tab data.");
             throw new RuntimeException(e);
         }
 

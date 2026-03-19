@@ -195,6 +195,7 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler, Mous
         ObjectNode idRoot = mapper.createObjectNode();
         ArrayNode idArrayNode = mapper.createArrayNode();
 
+        sfScan.log.logToOutput("[SFSCAN] Saving SFID tab data.");
         // Save targets
         for(String target: sfIds.toArray(new String[0]))
         {
@@ -206,6 +207,7 @@ public class SFIdTab extends JPanel implements ActionListener, HttpHandler, Mous
         try {
             jsonData = mapper.writeValueAsString(idRoot);
         } catch (JsonProcessingException e) {
+            sfScan.log.logToError("[SFSCAN ERROR] Error saving SFID tab data.");
             throw new RuntimeException(e);
         }
 

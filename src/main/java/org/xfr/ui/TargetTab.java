@@ -148,6 +148,8 @@ public class TargetTab extends JPanel implements ActionListener, HttpHandler, Mo
         ObjectNode targetsRoot = mapper.createObjectNode();
         ArrayNode targetsArrayNode = mapper.createArrayNode();
 
+        sfScan.log.logToOutput("[SFSCAN] Saving target tab data.");
+
         // Save targets
         for(String target: targetSet.toArray(new String[0]))
         {
@@ -159,6 +161,7 @@ public class TargetTab extends JPanel implements ActionListener, HttpHandler, Mo
         try {
             jsonData = mapper.writeValueAsString(targetsRoot);
         } catch (JsonProcessingException e) {
+            sfScan.log.logToError("[SFSCAN ERROR] Error saving target tab data.");
             throw new RuntimeException(e);
         }
 
